@@ -20,6 +20,7 @@
     "clean-publish": "clean-publish.js",
     "clear-package-json": "clear-package-json.js"
   },
+  "main": "./core.js",
   "scripts": {
     "lint": "eslint *.js test/*.js",
     "unit": "tsm node_modules/uvu/bin.js . 'test/[^/]+\\.test\\.js$'",

@@ -1,20 +1,8 @@
 #!/usr/bin/env node
 
 import { parseListArg } from './utils.js'
-import {
-  createTempDirectory,
-  createFilesFilter,
-  copyFiles,
-  readPackageJSON,
-  clearPackageJSON,
-  writePackageJSON,
-  publish,
-  cleanComments,
-  removeTempDirectory,
-  runScript,
-  cleanDocs
-} from './core.js'
 import { getConfig } from './get-config.js'
+import { cleanPublish } from './core.js'
 
 const HELP =
   'npx clean-publish\n' +
@@ -99,38 +87,7 @@ async function handleOptions() {
 
 async function run() {
   const options = await handleOptions()
-
-  const tempDirectoryName = await createTempDirectory(options.tempDir)
-
-  const filesFilter = createFilesFilter(options.files)
-
-  await copyFiles(tempDirectoryName, filesFilter)
-
-  const packageJson = await readPackageJSON()
-
-  if (options.cleanDocs) {
-    await cleanDocs(tempDirectoryName, packageJson.repository, packageJson.homepage)
-  }
-
-  if (options.cleanComments) {
-    await cleanComments(tempDirectoryName)
-  }
-
-  const cleanPackageJSON = clearPackageJSON(packageJson, options.fields)
-  await writePackageJSON(tempDirectoryName, cleanPackageJSON)
-
-  let prepublishSuccess = true
-  if (options.beforeScript) {
-    prepublishSuccess = await runScript(options.beforeScript, tempDirectoryName)
-  }
-
-  if (!options.withoutPublish && prepublishSuccess) {
-    await publish(tempDirectoryName, options)
-  }
-
-  if (!options.withoutPublish) {
-    await removeTempDirectory(tempDirectoryName)
-  }
+  await cleanPublish(options)
 }
 
 run().catch(error => {
