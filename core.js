@@ -32,8 +32,8 @@ const PUBLISH_CONFIG_FIELDS = [
   'os'
 ]
 
-export function readPackageJSON() {
-  return readJSON('package.json')
+export function readPackageJSON(directoryName) {
+  return readJSON(join(directoryName, 'package.json'))
 }
 
 export function writePackageJSON(directoryName, packageJSON) {
@@ -136,13 +136,18 @@ export function createFilesFilter(ignoreFiles) {
   }
 }
 
-export async function copyFiles(tempDir, filter) {
-  const rootFiles = await fs.readdir('./')
+export async function copyFiles(cwd = './', tempDir, filter) {
+  const rootFiles = await fs.readdir(cwd)
+  // console.log('rootFiles', rootFiles)
+  // console.log('tempDir', tempDir)
 
   return Promise.all(
     rootFiles.map(async file => {
       if (file !== tempDir) {
-        await copy(file, join(tempDir, file), { filter })
+        const from = join(cwd, file)
+        const to = join(cwd, tempDir, file)
+        // console.log('[copy]', from, to)
+        await copy(from, to, { filter })
       }
     })
   )
@@ -171,10 +176,10 @@ export function publish(
   })
 }
 
-export async function createTempDirectory(name) {
+export async function createTempDirectory(cwd, name) {
   if (name) {
     try {
-      await fs.mkdir(name)
+      await fs.mkdir(join(cwd, name))
     } catch (err) {
       if (err.code === 'EEXIST') {
         throw new Error(`Temporary directory "${name}" already exists.`)
@@ -184,7 +189,7 @@ export async function createTempDirectory(name) {
     return name
   }
 
-  return await fs.mkdtemp('tmp')
+  return await fs.mkdtemp(join(cwd, 'tmp'))
 }
 
 export function removeTempDirectory(directoryName) {
@@ -242,13 +247,16 @@ export async function cleanComments(drectoryName) {
 }
 
 export async function cleanPublish(options) {
-  const tempDirectoryName = await createTempDirectory(options.tempDir)
+  const cwd = options.cwd || process.cwd()
+  
+  const tempDirectoryName = await createTempDirectory(cwd, options.tempDir)
+  // console.log({tempDirectoryName})
 
   const filesFilter = createFilesFilter(options.files)
 
-  await copyFiles(tempDirectoryName, filesFilter)
+  await copyFiles(cwd, tempDirectoryName, filesFilter)
 
-  const packageJson = await readPackageJSON()
+  const packageJson = await readPackageJSON(cwd)
 
   if (options.cleanDocs) {
     await cleanDocs(
